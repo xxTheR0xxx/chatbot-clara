@@ -67,7 +67,6 @@ async function connectWhatsApp() {
         saudacao = `Olá ${contatoExistente.nome.split(' ')[0]}, tudo bem?\n`;
       }
 
-      // 1️⃣ RESPOSTA COM APP PRINCIPAL DO DIFY
       const resposta = await axios.post(
         'https://api.dify.ai/v1/chat-messages',
         {
@@ -105,9 +104,7 @@ async function connectWhatsApp() {
         data_hora: new Date().toISOString()
       }]);
 
-      // 2️⃣ EXTRAÇÃO COM APP SECUNDÁRIO DO DIFY
-      const extracao = await axios.post(
-
+      // BLOCO DE EXTRAÇÃO
       let extraido = {};
       try {
         const extracao = await axios.post(
@@ -127,18 +124,19 @@ async function connectWhatsApp() {
           }
         );
         extraido = JSON.parse(extracao.data.answer);
+
+        if (extraido.nome || extraido.cpf || extraido.rg) {
+          await supabase.from('Contatos')
+            .update({
+              nome: extraido.nome || contatoExistente?.nome || null,
+              cpf: extraido.cpf || contatoExistente?.cpf || null,
+              rg: extraido.rg || contatoExistente?.rg || null
+            })
+            .eq('numero_whatsapp', numeroLimpo);
+          console.log(`🧠 Dados atualizados no Supabase para ${numeroLimpo}:`, extraido);
+        }
       } catch (e) {
         console.error('❌ Erro ao extrair dados com Dify:', e.response?.data || e.message);
-      }
-      if (extraido.nome || extraido.cpf || extraido.rg) {
-        await supabase.from('Contatos')
-          .update({
-            nome: extraido.nome || contatoExistente?.nome || null,
-            cpf: extraido.cpf || contatoExistente?.cpf || null,
-            rg: extraido.rg || contatoExistente?.rg || null
-          })
-          .eq('numero_whatsapp', numeroLimpo);
-        console.log(`🧠 Dados atualizados no Supabase para ${numeroLimpo}:`, extraido);
       }
 
     } catch (err) {
