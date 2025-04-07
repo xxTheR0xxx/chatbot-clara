@@ -56,63 +56,7 @@ async function connectWhatsApp() {
     console.log(`📩 Mensagem de ${numeroLimpo}: ${texto}`);
 
     try {
-      const { data: contatoExistente } = await supabase
-        .from('Contatos')
-        .select('*')
-        .eq('numero_whatsapp', numeroLimpo)
-        .single();
-
-      let saudacao = '';
-      if (contatoExistente?.nome) {
-        saudacao = `Olá ${contatoExistente.nome.split(' ')[0]}, tudo bem?\n`;
-      }
-
-      const resposta = await axios.post(
-        'https://api.dify.ai/v1/chat-messages',
-        {
-          inputs: {
-            nome: contatoExistente?.nome || "",
-            cpf: contatoExistente?.cpf || "",
-            rg: contatoExistente?.rg || ""
-          },
-          query: texto,
-          response_mode: "blocking",
-          user: de
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      const respostaTexto = saudacao + resposta.data.answer;
-      await sock.sendMessage(de, { text: respostaTexto });
-      console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
-
-      if (!contatoExistente) {
-        // Enviar saudação de boas-vindas
-        const mensagemBoasVindas = "Olá! Seja bem-vindo(a) ao atendimento jurídico Clara 👩‍⚖️\nEstou aqui para te ajudar com dúvidas legais, informações sobre processos ou agendamentos. Como posso te chamar?";
-        await sock.sendMessage(de, { text: mensagemBoasVindas });
-
-        await supabase.from('Contatos').insert([{
-          numero_whatsapp: numeroLimpo,
-          nome: null,
-          cpf: null,
-          rg: null,
-          outros_dados: null
-        }]);
-      }
-
-      await supabase.from('historico_mensagens').insert([{
-        numero_whatsapp: numeroLimpo,
-        mensagem_usuario: texto,
-        resposta_chatbot: respostaTexto,
-        data_hora: new Date().toISOString()
-      }]);
-
-      // BLOCO DE EXTRAÇÃO
+      // 1. Extrair dados com Dify EXTRATOR
       let extraido = {};
       try {
         const extracao = await axios.post(
@@ -131,30 +75,87 @@ async function connectWhatsApp() {
           }
         );
         extraido = JSON.parse(extracao.data.answer);
-// Espera-se um JSON com: nome, cpf, rg, email, endereco, telefone
-
-
-        if (extraido.nome || extraido.cpf || extraido.rg || extraido.email || extraido.endereco || extraido.telefone) {
-          
-        const atualizacao = {};
-        if (extraido.nome) atualizacao.nome = extraido.nome;
-        if (extraido.cpf) atualizacao.cpf = extraido.cpf;
-        if (extraido.rg) atualizacao.rg = extraido.rg;
-        if (extraido.email) atualizacao.email = extraido.email;
-        if (extraido.endereco) atualizacao.endereco = extraido.endereco;
-        if (extraido.telefone) atualizacao.telefone_alternativo = extraido.telefone;
-
-        if (Object.keys(atualizacao).length > 0) {
-          await supabase.from('Contatos')
-            .update(atualizacao)
-            .eq('numero_whatsapp', numeroLimpo);
-          console.log(`🧠 Dados atualizados no Supabase para ${numeroLimpo}:`, atualizacao);
-        }
-
-        }
       } catch (e) {
         console.error('❌ Erro ao extrair dados com Dify:', e.response?.data || e.message);
       }
+
+      // 2. Verificar se o contato existe
+      let { data: contatoExistente } = await supabase
+        .from('Contatos')
+        .select('*')
+        .eq('numero_whatsapp', numeroLimpo)
+        .single();
+
+      if (!contatoExistente) {
+        // Criar o contato
+        await supabase.from('Contatos').insert([{ numero_whatsapp: numeroLimpo }]);
+        console.log(`📌 Novo contato adicionado: ${numeroLimpo}`);
+      }
+
+      // 3. Atualizar dados extraídos no Supabase
+      const atualizacao = {};
+      if (extraido.nome) atualizacao.nome = extraido.nome;
+      if (extraido.cpf) atualizacao.cpf = extraido.cpf;
+      if (extraido.rg) atualizacao.rg = extraido.rg;
+      if (extraido.email) atualizacao.email = extraido.email;
+      if (extraido.endereco) atualizacao.endereco = extraido.endereco;
+      if (extraido.telefone) atualizacao.telefone_alternativo = extraido.telefone;
+
+      if (Object.keys(atualizacao).length > 0) {
+        await supabase.from('Contatos')
+          .update(atualizacao)
+          .eq('numero_whatsapp', numeroLimpo);
+        console.log(`🧠 Dados atualizados no Supabase para ${numeroLimpo}:`, atualizacao);
+      }
+
+      // 4. Buscar dados atualizados após extração
+      const { data: contatoFinal } = await supabase
+        .from('Contatos')
+        .select('*')
+        .eq('numero_whatsapp', numeroLimpo)
+        .single();
+
+      // 5. Saudar se for o primeiro contato
+      if (!contatoExistente) {
+        const mensagemBoasVindas = "Olá! Seja bem-vindo(a) ao atendimento jurídico Clara 👩‍⚖️\nEstou aqui para te ajudar com dúvidas legais, informações sobre processos ou agendamentos. Como posso te chamar?";
+        await sock.sendMessage(de, { text: mensagemBoasVindas });
+      }
+
+      // 6. Enviar pergunta para o Dify com os dados atualizados
+      const resposta = await axios.post(
+        'https://api.dify.ai/v1/chat-messages',
+        {
+          inputs: {
+            nome: contatoFinal?.nome || "",
+            cpf: contatoFinal?.cpf || "",
+            rg: contatoFinal?.rg || "",
+            email: contatoFinal?.email || "",
+            endereco: contatoFinal?.endereco || "",
+            telefone: contatoFinal?.telefone_alternativo || ""
+          },
+          query: texto,
+          response_mode: "blocking",
+          user: de
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const respostaTexto = resposta.data.answer;
+      await sock.sendMessage(de, { text: respostaTexto });
+      console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
+
+      // 7. Salvar histórico
+      await supabase.from('historico_mensagens').insert([{
+        numero_whatsapp: numeroLimpo,
+        mensagem_usuario: texto,
+        resposta_chatbot: respostaTexto,
+        data_hora: new Date().toISOString()
+      }]);
 
     } catch (err) {
       console.error('❌ Erro ao processar mensagem:', err.message);
