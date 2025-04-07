@@ -13,7 +13,7 @@ let currentQrCode = null;
 
 async function connectWhatsApp() {
   const authPath = path.join(__dirname, 'auth');
-  if (!fs.existsSync(authPath)) fs.mkdirSync(authPath);
+  fs.mkdirSync(authPath, { recursive: true });
 
   const { state, saveCreds } = await useMultiFileAuthState(authPath);
   const sock = makeWASocket({ auth: state, printQRInTerminal: false });
