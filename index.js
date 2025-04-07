@@ -1,19 +1,16 @@
 require('dotenv').config();
-const { Pool } = require('pg');
-const db = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
 const express = require('express');
 const axios = require('axios');
 const { default: makeWASocket, useMultiFileAuthState } = require('baileys');
 const qrcode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 let currentQrCode = null;
 
 async function connectWhatsApp() {
@@ -48,14 +45,12 @@ async function connectWhatsApp() {
     }
   });
 
-  // Integração com Dify
   sock.ev.on('messages.upsert', async ({ messages }) => {
     const msg = messages[0];
     if (!msg.message || msg.key.fromMe) return;
 
     const de = msg.key.remoteJid;
     const texto = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
-
     if (!texto) return;
 
     console.log(`📩 Mensagem de ${de}: ${texto}`);
@@ -75,40 +70,36 @@ async function connectWhatsApp() {
 
       const respostaTexto = resposta.data.answer;
       console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
-
       await sock.sendMessage(de, { text: respostaTexto });
 
+      // 🔁 SUPABASE - salvar contato e histórico
+      const { data: contatoExistente } = await supabase
+        .from('Contatos')
+        .select('*')
+        .eq('numero_whatsapp', de)
+        .single();
+
+      if (!contatoExistente) {
+        await supabase.from('Contatos').insert([{
+          numero_whatsapp: de,
+          nome: null,
+          cpf: null,
+          rg: null,
+          outros_dados: null
+        }]);
+      }
+
+      await supabase.from('historico_mensagens').insert([{
+        numero_whatsapp: de,
+        mensagem_usuario: texto,
+        resposta_chatbot: respostaTexto,
+        data_hora: new Date().toISOString()
+      }]);
+
+      console.log(`💾 Histórico salvo no Supabase para ${de}`);
     } catch (err) {
-      console.error('Erro ao integrar com Dify:', err.message);
-      await sock.sendMessage(de, { text: "❌ Ocorreu um erro ao responder. Tente novamente mais tarde." });
-    } 
-    try {
-  // Verifica se o número já está cadastrado em Contatos
-  const checkContato = await db.query(
-    'SELECT * FROM Contatos WHERE numero_whatsapp = $1',
-    [de]
-  );
-
-  if (checkContato.rows.length === 0) {
-    // Se não estiver, insere como novo contato (com dados vazios inicialmente)
-    await db.query(
-      'INSERT INTO Contatos (numero_whatsapp, nome, cpf, rg, outros_dados) VALUES ($1, $2, $3, $4, $5)',
-      [de, null, null, null, null]
-    );
-  }
-
-  // Insere histórico da conversa
-  await db.query(
-    'INSERT INTO historico_mensagens (numero_whatsapp, mensagem_usuario, resposta_chatbot, data_hora) VALUES ($1, $2, $3, NOW())',
-    [de, texto, respostaTexto]
-  );
-
-  console.log(`💾 Histórico salvo no banco para ${de}`);
-
-} catch (err) {
-  console.error('❌ Erro ao salvar no banco:', err.message);
-}
-
+      console.error('❌ Erro ao processar mensagem:', err.message);
+    }
   });
 }
 
@@ -127,7 +118,6 @@ app.get('/qr', (req, res) => {
 });
 
 connectWhatsApp();
-
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
 });
