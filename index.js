@@ -135,17 +135,22 @@ async function connectWhatsApp() {
 
 
         if (extraido.nome || extraido.cpf || extraido.rg || extraido.email || extraido.endereco || extraido.telefone) {
+          
+        const atualizacao = {};
+        if (extraido.nome) atualizacao.nome = extraido.nome;
+        if (extraido.cpf) atualizacao.cpf = extraido.cpf;
+        if (extraido.rg) atualizacao.rg = extraido.rg;
+        if (extraido.email) atualizacao.email = extraido.email;
+        if (extraido.endereco) atualizacao.endereco = extraido.endereco;
+        if (extraido.telefone) atualizacao.telefone_alternativo = extraido.telefone;
+
+        if (Object.keys(atualizacao).length > 0) {
           await supabase.from('Contatos')
-            .update({
-              nome: extraido.nome || contatoExistente?.nome || null,
-              cpf: extraido.cpf || contatoExistente?.cpf || null,
-              rg: extraido.rg || contatoExistente?.rg || null,
-              email: extraido.email || contatoExistente?.email || null,
-              endereco: extraido.endereco || contatoExistente?.endereco || null,
-              telefone_alternativo: extraido.telefone || contatoExistente?.telefone_alternativo || null
-            })
+            .update(atualizacao)
             .eq('numero_whatsapp', numeroLimpo);
-          console.log(`🧠 Dados atualizados no Supabase para ${numeroLimpo}:`, extraido);
+          console.log(`🧠 Dados atualizados no Supabase para ${numeroLimpo}:`, atualizacao);
+        }
+
         }
       } catch (e) {
         console.error('❌ Erro ao extrair dados com Dify:', e.response?.data || e.message);
