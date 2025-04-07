@@ -1,4 +1,9 @@
 require('dotenv').config();
+const { Pool } = require('pg');
+const db = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 const express = require('express');
 const axios = require('axios');
 const { default: makeWASocket, useMultiFileAuthState } = require('baileys');
@@ -76,7 +81,34 @@ async function connectWhatsApp() {
     } catch (err) {
       console.error('Erro ao integrar com Dify:', err.message);
       await sock.sendMessage(de, { text: "❌ Ocorreu um erro ao responder. Tente novamente mais tarde." });
-    }
+    } 
+    try {
+  // Verifica se o número já está cadastrado em Contatos
+  const checkContato = await db.query(
+    'SELECT * FROM Contatos WHERE numero_whatsapp = $1',
+    [de]
+  );
+
+  if (checkContato.rows.length === 0) {
+    // Se não estiver, insere como novo contato (com dados vazios inicialmente)
+    await db.query(
+      'INSERT INTO Contatos (numero_whatsapp, nome, cpf, rg, outros_dados) VALUES ($1, $2, $3, $4, $5)',
+      [de, null, null, null, null]
+    );
+  }
+
+  // Insere histórico da conversa
+  await db.query(
+    'INSERT INTO historico_mensagens (numero_whatsapp, mensagem_usuario, resposta_chatbot, data_hora) VALUES ($1, $2, $3, NOW())',
+    [de, texto, respostaTexto]
+  );
+
+  console.log(`💾 Histórico salvo no banco para ${de}`);
+
+} catch (err) {
+  console.error('❌ Erro ao salvar no banco:', err.message);
+}
+
   });
 }
 
