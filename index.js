@@ -70,7 +70,7 @@ const numeroLimpo = de.replace('@s.whatsapp.net', '');
   }
 
   const resposta = await axios.post('https://api.dify.ai/v1/chat-messages', {
-    inputs: {},
+        inputs: {}
     query: texto,
     response_mode: "blocking",
     user: de
@@ -82,7 +82,7 @@ const numeroLimpo = de.replace('@s.whatsapp.net', '');
   });
 
   const respostaTexto = saudacao + resposta.data.answer;
-        inputs: {},
+        inputs: {}
         query: texto,
         response_mode: "blocking",
         user: de
