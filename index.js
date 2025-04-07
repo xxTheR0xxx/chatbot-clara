@@ -9,7 +9,6 @@ const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const port = process.env.PORT || 3000;
-
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 let currentQrCode = null;
 
@@ -41,7 +40,7 @@ async function connectWhatsApp() {
 
     if (connection === 'close') {
       console.log('❌ Conexão encerrada. Tentando reconectar...');
-      connectWhatsApp(); // reconecta automaticamente
+      connectWhatsApp();
     }
   });
 
@@ -50,67 +49,47 @@ async function connectWhatsApp() {
     if (!msg.message || msg.key.fromMe) return;
 
     const de = msg.key.remoteJid;
+    const numeroLimpo = de.replace('@s.whatsapp.net', '');
     const texto = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
     if (!texto) return;
 
-    console.log(`📩 Mensagem de ${de}: ${texto}`);
+    console.log(`📩 Mensagem de ${numeroLimpo}: ${texto}`);
 
     try {
-const numeroLimpo = de.replace('@s.whatsapp.net', '');
-
-  const { data: contatoExistente } = await supabase
-    .from('Contatos')
-    .select('*')
-    .eq('numero_whatsapp', numeroLimpo)
-    .single();
-
-  let saudacao = '';
-  if (contatoExistente?.nome) {
-    saudacao = `Olá ${contatoExistente.nome.split(' ')[0]}, tudo bem?\n`;
-  }
-
-  const resposta = await axios.post(
-      'https://api.dify.ai/v1/chat-messages',
-      {
-        inputs: {},
-        query: texto,
-        response_mode: "blocking",
-        user: de
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-  const respostaTexto = saudacao + resposta.data.answer;
-        inputs: {}
-        query: texto,
-        response_mode: "blocking",
-        user: de
-      }, {
-        headers: {
-          Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const respostaTexto = resposta.data.answer;
-      console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
-      await sock.sendMessage(de, { text: respostaTexto });
-
-      // 🔁 SUPABASE - salvar contato e histórico
       const { data: contatoExistente } = await supabase
         .from('Contatos')
         .select('*')
-        .eq('numero_whatsapp', de)
+        .eq('numero_whatsapp', numeroLimpo)
         .single();
+
+      let saudacao = '';
+      if (contatoExistente?.nome) {
+        saudacao = `Olá ${contatoExistente.nome.split(' ')[0]}, tudo bem?\n`;
+      }
+
+      const resposta = await axios.post(
+        'https://api.dify.ai/v1/chat-messages',
+        {
+          inputs: {},
+          query: texto,
+          response_mode: "blocking",
+          user: de
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const respostaTexto = saudacao + resposta.data.answer;
+      await sock.sendMessage(de, { text: respostaTexto });
+      console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
 
       if (!contatoExistente) {
         await supabase.from('Contatos').insert([{
-          numero_whatsapp: de,
+          numero_whatsapp: numeroLimpo,
           nome: null,
           cpf: null,
           rg: null,
@@ -119,25 +98,52 @@ const numeroLimpo = de.replace('@s.whatsapp.net', '');
       }
 
       await supabase.from('historico_mensagens').insert([{
-        numero_whatsapp: de,
+        numero_whatsapp: numeroLimpo,
         mensagem_usuario: texto,
         resposta_chatbot: respostaTexto,
         data_hora: new Date().toISOString()
       }]);
 
-      console.log(`💾 Histórico salvo no Supabase para ${de}`);
+      const extracao = await axios.post(
+        'https://api.dify.ai/v1/chat-messages',
+        {
+          inputs: {},
+          query: texto,
+          response_mode: "blocking",
+          user: `extrator-${numeroLimpo}`,
+          conversation_id: `extrator-${numeroLimpo}`
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
+            'Content-Type': 'application/json',
+            'X-Prompt': "Extraia e retorne apenas um JSON com os dados da pessoa (nome, cpf e rg) da seguinte mensagem. Se não houver nenhum dado, retorne um objeto vazio. Exemplo: {\"nome\": \"João Silva\", \"cpf\": \"123.456.789-00\", \"rg\": \"7.654.321\"}"
+          }
+        }
+      );
+
+      const extraido = JSON.parse(extracao.data.answer);
+      if (extraido.nome || extraido.cpf || extraido.rg) {
+        await supabase.from('Contatos')
+          .update({
+            nome: extraido.nome || contatoExistente?.nome || null,
+            cpf: extraido.cpf || contatoExistente?.cpf || null,
+            rg: extraido.rg || contatoExistente?.rg || null
+          })
+          .eq('numero_whatsapp', numeroLimpo);
+        console.log(`🧠 Dados atualizados no Supabase para ${numeroLimpo}:`, extraido);
+      }
+
     } catch (err) {
       console.error('❌ Erro ao processar mensagem:', err.message);
     }
   });
 }
 
-// Rota principal
 app.get('/', (req, res) => {
   res.send('Bot WhatsApp rodando. Acesse /qr para escanear o código.');
 });
 
-// Rota do QR Code
 app.get('/qr', (req, res) => {
   if (currentQrCode) {
     res.send(`<img src="${currentQrCode}" />`);
