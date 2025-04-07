@@ -56,7 +56,32 @@ async function connectWhatsApp() {
     console.log(`📩 Mensagem de ${de}: ${texto}`);
 
     try {
-      const resposta = await axios.post('https://api.dify.ai/v1/chat-messages', {
+const numeroLimpo = de.replace('@s.whatsapp.net', '');
+
+  const { data: contatoExistente } = await supabase
+    .from('Contatos')
+    .select('*')
+    .eq('numero_whatsapp', numeroLimpo)
+    .single();
+
+  let saudacao = '';
+  if (contatoExistente?.nome) {
+    saudacao = `Olá ${contatoExistente.nome.split(' ')[0]}, tudo bem?\n`;
+  }
+
+  const resposta = await axios.post('https://api.dify.ai/v1/chat-messages', {
+    inputs: {},
+    query: texto,
+    response_mode: "blocking",
+    user: de
+  }, {
+    headers: {
+      Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  const respostaTexto = saudacao + resposta.data.answer;
         inputs: {},
         query: texto,
         response_mode: "blocking",
