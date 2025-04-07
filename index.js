@@ -107,23 +107,29 @@ async function connectWhatsApp() {
 
       // 2️⃣ EXTRAÇÃO COM APP SECUNDÁRIO DO DIFY
       const extracao = await axios.post(
-        'https://api.dify.ai/v1/chat-messages',
-        {
-          inputs: {},
-          query: texto,
-          response_mode: "blocking",
-          user: `extrator-${numeroLimpo}`,
-          conversation_id: `extrator-${numeroLimpo}`
-        },
-        {
-          headers: {
-            Authorization: 'Bearer app-COzloOTP69Z5MKjSFT8EbuKo',
-            'Content-Type': 'application/json'
-          }
-        }
-      );
 
-      const extraido = JSON.parse(extracao.data.answer);
+      let extraido = {};
+      try {
+        const extracao = await axios.post(
+          'https://api.dify.ai/v1/chat-messages',
+          {
+            inputs: {},
+            query: texto,
+            response_mode: "blocking",
+            user: `extrator-${numeroLimpo}`,
+            conversation_id: `extrator-${numeroLimpo}`
+          },
+          {
+            headers: {
+              Authorization: 'Bearer app-COzloOTP69Z5MKjSFT8EbuKo',
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        extraido = JSON.parse(extracao.data.answer);
+      } catch (e) {
+        console.error('❌ Erro ao extrair dados com Dify:', e.response?.data || e.message);
+      }
       if (extraido.nome || extraido.cpf || extraido.rg) {
         await supabase.from('Contatos')
           .update({
