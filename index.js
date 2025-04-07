@@ -24,20 +24,21 @@ async function connectWhatsApp() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        if (qr) {
-            // Exibe o QR code no terminal local
-            qrcode.generate(qr, { small: true });
-        }
-        if (connection === 'close') {
-            const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log('Conexão fechada. Tentando reconectar...', shouldReconnect);
-            if (shouldReconnect) connectWhatsApp();
-        } else if (connection === 'open') {
-            console.log('✅ WhatsApp conectado com sucesso!');
-        }
-    });
+	sock.ev.on('connection.update', (update) => {
+   	 console.log('Update de conexão:', update);
+ 	   const { connection, lastDisconnect, qr } = update;
+ 	   if (qr) {
+ 	       qrcode.generate(qr, { small: true });
+	    }
+  	  if (connection === 'close') {
+ 	       const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
+        console.log('Conexão fechada. Tentando reconectar...', shouldReconnect);
+   	     if (shouldReconnect) connectWhatsApp();
+ 	   } else if (connection === 'open') {
+  	      console.log('✅ WhatsApp conectado com sucesso!');
+  	  }
+	});
+
 
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const msg = messages[0];
