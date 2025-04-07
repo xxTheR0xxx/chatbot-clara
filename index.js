@@ -112,7 +112,8 @@ async function connectWhatsApp() {
           {
             inputs: {},
             query: texto,
-            response_mode: "blocking"
+            response_mode: "blocking",
+            user: `extrator-${numeroLimpo}`
           },
           {
             headers: {
