@@ -70,7 +70,11 @@ async function connectWhatsApp() {
       const resposta = await axios.post(
         'https://api.dify.ai/v1/chat-messages',
         {
-          inputs: {},
+          inputs: {
+            nome: contatoExistente?.nome || "",
+            cpf: contatoExistente?.cpf || "",
+            rg: contatoExistente?.rg || ""
+          },
           query: texto,
           response_mode: "blocking",
           user: de
