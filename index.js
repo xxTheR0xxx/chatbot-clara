@@ -67,6 +67,7 @@ async function connectWhatsApp() {
         saudacao = `Olá ${contatoExistente.nome.split(' ')[0]}, tudo bem?\n`;
       }
 
+      // 1️⃣ RESPOSTA COM APP PRINCIPAL DO DIFY
       const resposta = await axios.post(
         'https://api.dify.ai/v1/chat-messages',
         {
@@ -104,6 +105,7 @@ async function connectWhatsApp() {
         data_hora: new Date().toISOString()
       }]);
 
+      // 2️⃣ EXTRAÇÃO COM APP SECUNDÁRIO DO DIFY
       const extracao = await axios.post(
         'https://api.dify.ai/v1/chat-messages',
         {
@@ -115,9 +117,8 @@ async function connectWhatsApp() {
         },
         {
           headers: {
-            Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
-            'Content-Type': 'application/json',
-            'X-Prompt': "Extraia e retorne apenas um JSON com os dados da pessoa (nome, cpf e rg) da seguinte mensagem. Se não houver nenhum dado, retorne um objeto vazio. Exemplo: {\"nome\": \"João Silva\", \"cpf\": \"123.456.789-00\", \"rg\": \"7.654.321\"}"
+            Authorization: 'Bearer app-COzloOTP69Z5MKjSFT8EbuKo',
+            'Content-Type': 'application/json'
           }
         }
       );
