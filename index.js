@@ -92,6 +92,10 @@ async function connectWhatsApp() {
       console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
 
       if (!contatoExistente) {
+        // Enviar saudação de boas-vindas
+        const mensagemBoasVindas = "Olá! Seja bem-vindo(a) ao atendimento jurídico Clara 👩‍⚖️\nEstou aqui para te ajudar com dúvidas legais, informações sobre processos ou agendamentos. Como posso te chamar?";
+        await sock.sendMessage(de, { text: mensagemBoasVindas });
+
         await supabase.from('Contatos').insert([{
           numero_whatsapp: numeroLimpo,
           nome: null,
@@ -127,13 +131,18 @@ async function connectWhatsApp() {
           }
         );
         extraido = JSON.parse(extracao.data.answer);
+// Espera-se um JSON com: nome, cpf, rg, email, endereco, telefone
 
-        if (extraido.nome || extraido.cpf || extraido.rg) {
+
+        if (extraido.nome || extraido.cpf || extraido.rg || extraido.email || extraido.endereco || extraido.telefone) {
           await supabase.from('Contatos')
             .update({
               nome: extraido.nome || contatoExistente?.nome || null,
               cpf: extraido.cpf || contatoExistente?.cpf || null,
-              rg: extraido.rg || contatoExistente?.rg || null
+              rg: extraido.rg || contatoExistente?.rg || null,
+              email: extraido.email || contatoExistente?.email || null,
+              endereco: extraido.endereco || contatoExistente?.endereco || null,
+              telefone_alternativo: extraido.telefone || contatoExistente?.telefone_alternativo || null
             })
             .eq('numero_whatsapp', numeroLimpo);
           console.log(`🧠 Dados atualizados no Supabase para ${numeroLimpo}:`, extraido);
