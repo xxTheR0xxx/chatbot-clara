@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState } = require('baileys');
 const qrcode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
@@ -16,7 +16,11 @@ async function connectWhatsApp() {
   fs.mkdirSync(authPath, { recursive: true });
 
   const { state, saveCreds } = await useMultiFileAuthState(authPath);
-  const sock = makeWASocket({ auth: state, printQRInTerminal: false });
+  const sock = makeWASocket({
+    auth: state,
+    printQRInTerminal: false,
+    browser: ['Chrome', 'Linux', '110.0.0.0']
+  });
 
   sock.ev.on('creds.update', saveCreds);
 
@@ -32,9 +36,14 @@ async function connectWhatsApp() {
       console.log('✅ Conectado ao WhatsApp!');
       currentQrCode = null;
     }
+
+    if (connection === 'close') {
+      console.log('❌ Conexão encerrada. Tentando reconectar...');
+      connectWhatsApp(); // reconecta automaticamente
+    }
   });
 
-  // Integração com Dify para responder mensagens
+  // Integração com Dify
   sock.ev.on('messages.upsert', async ({ messages }) => {
     const msg = messages[0];
     if (!msg.message || msg.key.fromMe) return;
@@ -44,7 +53,7 @@ async function connectWhatsApp() {
 
     if (!texto) return;
 
-    console.log(`📩 Mensagem recebida de ${de}: ${texto}`);
+    console.log(`📩 Mensagem de ${de}: ${texto}`);
 
     try {
       const resposta = await axios.post('https://api.dify.ai/v1/chat-messages', {
@@ -66,14 +75,14 @@ async function connectWhatsApp() {
 
     } catch (err) {
       console.error('Erro ao integrar com Dify:', err.message);
-      await sock.sendMessage(de, { text: "❌ Erro ao gerar resposta. Tente novamente em instantes." });
+      await sock.sendMessage(de, { text: "❌ Ocorreu um erro ao responder. Tente novamente mais tarde." });
     }
   });
 }
 
 // Rota principal
 app.get('/', (req, res) => {
-  res.send('Bot WhatsApp rodando no Railway. Acesse /qr para escanear o código.');
+  res.send('Bot WhatsApp rodando. Acesse /qr para escanear o código.');
 });
 
 // Rota do QR Code
