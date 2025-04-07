@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const axios = require('axios');
 const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode');
 const fs = require('fs');
@@ -29,17 +30,53 @@ async function connectWhatsApp() {
 
     if (connection === 'open') {
       console.log('✅ Conectado ao WhatsApp!');
-      currentQrCode = null; // Zera o QR code depois de conectar
+      currentQrCode = null;
+    }
+  });
+
+  // Integração com Dify para responder mensagens
+  sock.ev.on('messages.upsert', async ({ messages }) => {
+    const msg = messages[0];
+    if (!msg.message || msg.key.fromMe) return;
+
+    const de = msg.key.remoteJid;
+    const texto = msg.message?.conversation || msg.message?.extendedTextMessage?.text;
+
+    if (!texto) return;
+
+    console.log(`📩 Mensagem recebida de ${de}: ${texto}`);
+
+    try {
+      const resposta = await axios.post('https://api.dify.ai/v1/chat-messages', {
+        inputs: {},
+        query: texto,
+        response_mode: "blocking",
+        user: de
+      }, {
+        headers: {
+          Authorization: "Bearer app-9IAW1TtsAuKrlKxkijm6e7Em",
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const respostaTexto = resposta.data.answer;
+      console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
+
+      await sock.sendMessage(de, { text: respostaTexto });
+
+    } catch (err) {
+      console.error('Erro ao integrar com Dify:', err.message);
+      await sock.sendMessage(de, { text: "❌ Erro ao gerar resposta. Tente novamente em instantes." });
     }
   });
 }
 
-// Rota principal: só pra ver se o servidor está no ar
+// Rota principal
 app.get('/', (req, res) => {
   res.send('Bot WhatsApp rodando no Railway. Acesse /qr para escanear o código.');
 });
 
-// Rota que exibe o QR code (se existir)
+// Rota do QR Code
 app.get('/qr', (req, res) => {
   if (currentQrCode) {
     res.send(`<img src="${currentQrCode}" />`);
