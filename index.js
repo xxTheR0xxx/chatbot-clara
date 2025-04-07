@@ -70,16 +70,16 @@ const numeroLimpo = de.replace('@s.whatsapp.net', '');
   }
 
   const resposta = await axios.post('https://api.dify.ai/v1/chat-messages', {
-        inputs: {}
-    query: texto,
-    response_mode: "blocking",
-    user: de
-  }, {
-    headers: {
-      Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
-      'Content-Type': 'application/json'
-    }
-  });
+      inputs: {},
+      query: texto,
+      response_mode: "blocking",
+      user: de
+    }, {
+      headers: {
+        Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
 
   const respostaTexto = saudacao + resposta.data.answer;
         inputs: {}
