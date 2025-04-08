@@ -179,7 +179,7 @@ async function connectWhatsApp() {
 
       // 6. Enviar pergunta para o Dify com os dados atualizados
 
-      let respostaTexto = "";
+      respostaTexto = "";
       try {
         const resposta = await axios.post(
           'https://api.dify.ai/v1/chat-messages',
@@ -218,7 +218,7 @@ async function connectWhatsApp() {
       console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
 
       
-      let respostaTexto = "";
+      respostaTexto = "";
       try {
         
       await sock.sendMessage(de, { text: respostaTexto });
