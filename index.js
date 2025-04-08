@@ -149,7 +149,7 @@ async function connectWhatsApp() {
           }
         );
         extraido = JSON.parse(extracao.data.answer);
-      } catch (e) {
+      } catch (e) { // Corrigido o parêntese
         console.error('❌ Erro ao extrair dados com Dify:', e.response?.data || e.message);
       }
 
