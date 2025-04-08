@@ -136,7 +136,7 @@ async function connectWhatsApp() {
           },
           query: texto,
           response_mode: "blocking",
-          user: de
+          user: `conversa-${numeroLimpo}`
         },
         {
           headers: {
