@@ -101,7 +101,18 @@ async function connectWhatsApp() {
             } else {
               console.error('Erro ao atualizar número:', erroUpdate.message);
             }
-            return; // encerra o fluxo aqui
+            
+          // após atualizar, reatribui os dados do novo número para manter consistência
+          const { data: novoContatoFinal } = await supabase
+            .from('Contatos')
+            .select('*')
+            .eq('numero_whatsapp', extraido.novo_numero)
+            .maybeSingle();
+
+          contatoFinal = novoContatoFinal;
+          de = extraido.novo_numero + "@s.whatsapp.net";
+
+          return; // encerra o fluxo aqui
           } else {
             await sock.sendMessage(de, { text: '⚠️ Para atualizar seu número, confirme seu CPF corretamente.' });
             return;
@@ -167,7 +178,11 @@ async function connectWhatsApp() {
       }
 
       // 6. Enviar pergunta para o Dify com os dados atualizados
-      const resposta = await axios.post(
+      
+      let respostaTexto = "";
+      try {
+        const resposta = await axios.post(
+
         'https://api.dify.ai/v1/chat-messages',
         {
           inputs: {
