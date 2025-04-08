@@ -130,7 +130,7 @@ async function connectWhatsApp() {
 	console.log('🔎 Dados recuperados do Supabase:', contatoFinal);
 
       // 5. Saudar se for o primeiro contato
-      if (!existente) {
+      if (!contatoFinal?.nome) {
         const mensagemBoasVindas = "Olá! Seja bem-vindo(a) ao atendimento jurídico Clara 👩‍⚖️\nEstou aqui para te ajudar com dúvidas legais, informações sobre processos ou agendamentos. Como posso te chamar?";
         await sock.sendMessage(de, { text: mensagemBoasVindas });
       }
