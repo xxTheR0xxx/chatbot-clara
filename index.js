@@ -124,8 +124,8 @@ async function connectWhatsApp() {
 
       // 5. Saudar se for o primeiro contato
       if (!contatoExistente) {
-        const mensagemBoasVindas = "Olá! Seja bem-vindo(a) ao atendimento jurídico Clara 👩‍⚖️
-Estou aqui para te ajudar com dúvidas legais, informações sobre processos ou agendamentos. Como posso te chamar?";
+        const mensagemBoasVindas = `Olá! Seja bem-vindo(a) ao atendimento jurídico Clara 👩‍⚖️
+		Estou aqui para te ajudar com dúvidas legais, informações sobre processos ou agendamentos. Como posso te chamar?`;
         await sock.sendMessage(de, { text: mensagemBoasVindas });
       }
 
