@@ -178,34 +178,49 @@ async function connectWhatsApp() {
       }
 
       // 6. Enviar pergunta para o Dify com os dados atualizados
-      
+
       let respostaTexto = "";
       try {
         const resposta = await axios.post(
-
-        'https://api.dify.ai/v1/chat-messages',
-        {
-          inputs: {
-            nome: contatoFinal?.nome || "",
-            cpf: contatoFinal?.cpf || "",
-            rg: contatoFinal?.rg || "",
-            email: contatoFinal?.email || "",
-            endereco: contatoFinal?.endereco || "",
-            telefone: contatoFinal?.telefone_alternativo || ""
+          'https://api.dify.ai/v1/chat-messages',
+          {
+            inputs: {
+              nome: contatoFinal?.nome || "",
+              cpf: contatoFinal?.cpf || "",
+              rg: contatoFinal?.rg || "",
+              email: contatoFinal?.email || "",
+              endereco: contatoFinal?.endereco || "",
+              telefone: contatoFinal?.telefone_alternativo || ""
+            },
+            query: texto,
+            response_mode: "blocking",
+            user: de
           },
-          query: texto,
-          response_mode: "blocking",
-          user: `conversa-${numeroLimpo}`
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
-            'Content-Type': 'application/json'
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
+              'Content-Type': 'application/json'
+            }
           }
+        );
+        respostaTexto = resposta.data.answer;
+      } catch (erro) {
+        if (erro.response?.status === 504) {
+          await sock.sendMessage(de, { text: '⚠️ O servidor está temporariamente indisponível. Tente novamente em instantes.' });
+        } else {
+          await sock.sendMessage(de, { text: '❌ Ocorreu um erro ao processar sua mensagem. Tente mais tarde.' });
         }
-      );
+        console.error("Erro ao processar mensagem:", erro.message || erro);
+        return;
+      }
 
-      const respostaTexto = resposta.data.answer;
+      await sock.sendMessage(de, { text: respostaTexto });
+      console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
+
+      
+      let respostaTexto = "";
+      try {
+        
       await sock.sendMessage(de, { text: respostaTexto });
       console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
 
