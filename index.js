@@ -55,10 +55,84 @@ async function connectWhatsApp() {
 
     console.log(`📩 Mensagem de ${numeroLimpo}: ${texto}`);
 
-    try {
+    
+      try {
+        let respostaTexto = "";
+        const resposta = await axios.post(
+          'https://api.dify.ai/v1/chat-messages',
+          {
+            inputs: {
+              nome: contatoFinal?.nome || "",
+              cpf: contatoFinal?.cpf || "",
+              rg: contatoFinal?.rg || "",
+              email: contatoFinal?.email || "",
+              endereco: contatoFinal?.endereco || "",
+              telefone: contatoFinal?.telefone_alternativo || ""
+            },
+            query: texto,
+            response_mode: "blocking",
+            user: de
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        respostaTexto = resposta.data.answer;
+        await sock.sendMessage(de, { text: respostaTexto });
+        console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
+      } catch (erro) {
+        if (erro.response?.status === 504) {
+          await sock.sendMessage(de, { text: '⚠️ O servidor está temporariamente indisponível. Tente novamente em instantes.' });
+        } else {
+          await sock.sendMessage(de, { text: '❌ Ocorreu um erro ao processar sua mensagem. Tente mais tarde.' });
+        }
+        console.error("Erro ao processar mensagem:", erro.message || erro);
+        return;
+      }
+
       // 1. Extrair dados com Dify EXTRATOR
       let extraido = {};
+      
       try {
+        let respostaTexto = "";
+        const resposta = await axios.post(
+          'https://api.dify.ai/v1/chat-messages',
+          {
+            inputs: {
+              nome: contatoFinal?.nome || "",
+              cpf: contatoFinal?.cpf || "",
+              rg: contatoFinal?.rg || "",
+              email: contatoFinal?.email || "",
+              endereco: contatoFinal?.endereco || "",
+              telefone: contatoFinal?.telefone_alternativo || ""
+            },
+            query: texto,
+            response_mode: "blocking",
+            user: de
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        respostaTexto = resposta.data.answer;
+        await sock.sendMessage(de, { text: respostaTexto });
+        console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
+      } catch (erro) {
+        if (erro.response?.status === 504) {
+          await sock.sendMessage(de, { text: '⚠️ O servidor está temporariamente indisponível. Tente novamente em instantes.' });
+        } else {
+          await sock.sendMessage(de, { text: '❌ Ocorreu um erro ao processar sua mensagem. Tente mais tarde.' });
+        }
+        console.error("Erro ao processar mensagem:", erro.message || erro);
+        return;
+      }
+
         const extracao = await axios.post(
           'https://api.dify.ai/v1/chat-messages',
           {
@@ -181,7 +255,44 @@ async function connectWhatsApp() {
 
       
       let respostaTexto = "";
+      
       try {
+        let respostaTexto = "";
+        const resposta = await axios.post(
+          'https://api.dify.ai/v1/chat-messages',
+          {
+            inputs: {
+              nome: contatoFinal?.nome || "",
+              cpf: contatoFinal?.cpf || "",
+              rg: contatoFinal?.rg || "",
+              email: contatoFinal?.email || "",
+              endereco: contatoFinal?.endereco || "",
+              telefone: contatoFinal?.telefone_alternativo || ""
+            },
+            query: texto,
+            response_mode: "blocking",
+            user: de
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        respostaTexto = resposta.data.answer;
+        await sock.sendMessage(de, { text: respostaTexto });
+        console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
+      } catch (erro) {
+        if (erro.response?.status === 504) {
+          await sock.sendMessage(de, { text: '⚠️ O servidor está temporariamente indisponível. Tente novamente em instantes.' });
+        } else {
+          await sock.sendMessage(de, { text: '❌ Ocorreu um erro ao processar sua mensagem. Tente mais tarde.' });
+        }
+        console.error("Erro ao processar mensagem:", erro.message || erro);
+        return;
+      }
+
         const resposta = await axios.post(
           'https://api.dify.ai/v1/chat-messages',
           {
@@ -229,7 +340,44 @@ async function connectWhatsApp() {
 
       
       let respostaTexto = "";
+      
       try {
+        let respostaTexto = "";
+        const resposta = await axios.post(
+          'https://api.dify.ai/v1/chat-messages',
+          {
+            inputs: {
+              nome: contatoFinal?.nome || "",
+              cpf: contatoFinal?.cpf || "",
+              rg: contatoFinal?.rg || "",
+              email: contatoFinal?.email || "",
+              endereco: contatoFinal?.endereco || "",
+              telefone: contatoFinal?.telefone_alternativo || ""
+            },
+            query: texto,
+            response_mode: "blocking",
+            user: de
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.DIFY_TOKEN}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        respostaTexto = resposta.data.answer;
+        await sock.sendMessage(de, { text: respostaTexto });
+        console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
+      } catch (erro) {
+        if (erro.response?.status === 504) {
+          await sock.sendMessage(de, { text: '⚠️ O servidor está temporariamente indisponível. Tente novamente em instantes.' });
+        } else {
+          await sock.sendMessage(de, { text: '❌ Ocorreu um erro ao processar sua mensagem. Tente mais tarde.' });
+        }
+        console.error("Erro ao processar mensagem:", erro.message || erro);
+        return;
+      }
+
         
       await sock.sendMessage(de, { text: respostaTexto });
       console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
