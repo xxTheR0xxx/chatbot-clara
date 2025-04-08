@@ -114,6 +114,7 @@ async function connectWhatsApp() {
         .select('*')
         .eq('numero_whatsapp', numeroLimpo)
         .single();
+	console.log('🔎 Dados recuperados do Supabase:', contatoFinal);
 
       // 5. Saudar se for o primeiro contato
       if (!contatoExistente) {
