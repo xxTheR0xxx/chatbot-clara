@@ -69,7 +69,7 @@ async function connectWhatsApp() {
           },
           {
             headers: {
-              Authorization: 'Bearer app-COzloOTP69Z5MKjSFT8EbuKo',
+              Authorization: `Bearer ${process.env.DIFY_EXTRATOR_TOKEN}`,
               'Content-Type': 'application/json'
             }
           }
