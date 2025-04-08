@@ -79,6 +79,35 @@ async function connectWhatsApp() {
         console.error('❌ Erro ao extrair dados com Dify:', e.response?.data || e.message);
       }
 
+      
+      // 1.1 Verificar se há solicitação de mudança de número
+      if (extraido.novo_numero && extraido.cpf_confirmacao) {
+        const { data: contatoOriginal, error } = await supabase
+          .from('Contatos')
+          .select('*')
+          .eq('numero_whatsapp', numeroLimpo)
+          .maybeSingle();
+
+        if (!error && contatoOriginal?.cpf === extraido.cpf_confirmacao) {
+          const { error: erroUpdate } = await supabase
+            .from('Contatos')
+            .update({ numero_whatsapp: extraido.novo_numero })
+            .eq('id', contatoOriginal.id);
+
+          if (!erroUpdate) {
+            await sock.sendMessage(de, { text: '✅ Seu número foi atualizado com sucesso!' });
+            console.log(`🔁 Número alterado para ${extraido.novo_numero}`);
+          } else {
+            console.error('Erro ao atualizar número:', erroUpdate.message);
+          }
+          return; // encerra o fluxo aqui
+        } else {
+          await sock.sendMessage(de, { text: '⚠️ Para atualizar seu número, confirme seu CPF corretamente.' });
+          return;
+        }
+      }
+
+
       // 2 e 3. Verificar se o contato existe e atualizar ou inserir
       const atualizacao = {};
       if (extraido.nome) atualizacao.nome = extraido.nome;
