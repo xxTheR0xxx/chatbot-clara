@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
@@ -80,16 +81,22 @@ async function connectWhatsApp() {
       }
 
       // 2. Verificar se o contato existe
-      let { data: contatoExistente } = await supabase
+      let { data: contatoExistente, error: erroBusca } = await supabase
         .from('Contatos')
         .select('*')
         .eq('numero_whatsapp', numeroLimpo)
-        .single();
+        .maybeSingle();
 
-      if (!contatoExistente) {
-        // Criar o contato
-        await supabase.from('Contatos').insert([{ numero_whatsapp: numeroLimpo }]);
-        console.log(`📌 Novo contato adicionado: ${numeroLimpo}`);
+      if (!contatoExistente && !erroBusca) {
+        const { error: erroInsercao } = await supabase
+          .from('Contatos')
+          .insert([{ numero_whatsapp: numeroLimpo }]);
+
+        if (erroInsercao) {
+          console.error(`❌ Erro ao inserir novo contato: ${erroInsercao.message}`);
+        } else {
+          console.log(`📌 Novo contato adicionado: ${numeroLimpo}`);
+        }
       }
 
       // 3. Atualizar dados extraídos no Supabase
@@ -114,11 +121,11 @@ async function connectWhatsApp() {
         .select('*')
         .eq('numero_whatsapp', numeroLimpo)
         .single();
-	console.log('🔎 Dados recuperados do Supabase:', contatoFinal);
 
       // 5. Saudar se for o primeiro contato
       if (!contatoExistente) {
-        const mensagemBoasVindas = "Olá! Seja bem-vindo(a) ao atendimento jurídico Clara 👩‍⚖️\nEstou aqui para te ajudar com dúvidas legais, informações sobre processos ou agendamentos. Como posso te chamar?";
+        const mensagemBoasVindas = "Olá! Seja bem-vindo(a) ao atendimento jurídico Clara 👩‍⚖️
+Estou aqui para te ajudar com dúvidas legais, informações sobre processos ou agendamentos. Como posso te chamar?";
         await sock.sendMessage(de, { text: mensagemBoasVindas });
       }
 
@@ -155,7 +162,8 @@ async function connectWhatsApp() {
         numero_whatsapp: numeroLimpo,
         mensagem_usuario: texto,
         resposta_chatbot: respostaTexto,
-        data_hora: new Date().toISOString()
+        data_hora: new Date().toISOString(),
+        contato_id: contatoFinal?.id || null
       }]);
 
     } catch (err) {
