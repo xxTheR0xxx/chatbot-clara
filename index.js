@@ -81,29 +81,31 @@ async function connectWhatsApp() {
 
       
       // 1.1 Verificar se há solicitação de mudança de número
-      if (extraido.novo_numero && extraido.cpf_confirmacao) {
-        const { data: contatoOriginal, error } = await supabase
-          .from('Contatos')
-          .select('*')
-          .eq('numero_whatsapp', numeroLimpo)
-          .maybeSingle();
-
-        if (!error && contatoOriginal?.cpf === extraido.cpf_confirmacao) {
-          const { error: erroUpdate } = await supabase
+      if (extraido && typeof extraido === 'object' && 'novo_numero' in extraido && 'cpf_confirmacao' in extraido) {
+        if (extraido.novo_numero && extraido.cpf_confirmacao) {
+          const { data: contatoOriginal, error } = await supabase
             .from('Contatos')
-            .update({ numero_whatsapp: extraido.novo_numero })
-            .eq('id', contatoOriginal.id);
+            .select('*')
+            .eq('numero_whatsapp', numeroLimpo)
+            .maybeSingle();
 
-          if (!erroUpdate) {
-            await sock.sendMessage(de, { text: '✅ Seu número foi atualizado com sucesso!' });
-            console.log(`🔁 Número alterado para ${extraido.novo_numero}`);
+          if (!error && contatoOriginal?.cpf === extraido.cpf_confirmacao) {
+            const { error: erroUpdate } = await supabase
+              .from('Contatos')
+              .update({ numero_whatsapp: extraido.novo_numero })
+              .eq('id', contatoOriginal.id);
+
+            if (!erroUpdate) {
+              await sock.sendMessage(de, { text: '✅ Seu número foi atualizado com sucesso!' });
+              console.log(`🔁 Número alterado para ${extraido.novo_numero}`);
+            } else {
+              console.error('Erro ao atualizar número:', erroUpdate.message);
+            }
+            return; // encerra o fluxo aqui
           } else {
-            console.error('Erro ao atualizar número:', erroUpdate.message);
+            await sock.sendMessage(de, { text: '⚠️ Para atualizar seu número, confirme seu CPF corretamente.' });
+            return;
           }
-          return; // encerra o fluxo aqui
-        } else {
-          await sock.sendMessage(de, { text: '⚠️ Para atualizar seu número, confirme seu CPF corretamente.' });
-          return;
         }
       }
 
