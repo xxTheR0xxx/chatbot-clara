@@ -179,7 +179,8 @@ async function connectWhatsApp() {
 
       // 6. Enviar pergunta para o Dify com os dados atualizados
 
-      respostaTexto = "";
+      
+      let respostaTexto = "";
       try {
         const resposta = await axios.post(
           'https://api.dify.ai/v1/chat-messages',
@@ -204,9 +205,18 @@ async function connectWhatsApp() {
           }
         );
         respostaTexto = resposta.data.answer;
+        await sock.sendMessage(de, { text: respostaTexto });
+        console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
       } catch (erro) {
         if (erro.response?.status === 504) {
           await sock.sendMessage(de, { text: '⚠️ O servidor está temporariamente indisponível. Tente novamente em instantes.' });
+        } else {
+          await sock.sendMessage(de, { text: '❌ Ocorreu um erro ao processar sua mensagem. Tente mais tarde.' });
+        }
+        console.error("Erro ao processar mensagem:", erro.message || erro);
+        return;
+      }
+
         } else {
           await sock.sendMessage(de, { text: '❌ Ocorreu um erro ao processar sua mensagem. Tente mais tarde.' });
         }
@@ -218,7 +228,7 @@ async function connectWhatsApp() {
       console.log(`🤖 Resposta do Dify: ${respostaTexto}`);
 
       
-      respostaTexto = "";
+      let respostaTexto = "";
       try {
         
       await sock.sendMessage(de, { text: respostaTexto });
